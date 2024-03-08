@@ -289,7 +289,7 @@
     <s:String x:Key="Create desktop shortcut">Create desktop shortcut</s:String>
     <s:String x:Key="Success">Success</s:String>
     <s:String x:Key="Failed">Failed</s:String>
-    <s:String x:Key="Please complete the windows credentials verification"> Please complete the windows credentials verification</s:String>
+    <s:String x:Key="Please complete the windows credentials verification">Please complete the windows credentials verification</s:String>
     <s:String x:Key="Enter your credentials">Enter your credentials</s:String>
     <s:String x:Key="Before proceeding with sensitive operations, we need to make sure it is you.">Before proceeding with sensitive operations, we need to make sure it is you.</s:String>
     <s:String x:Key="Verification failed. Please try again.">Verification failed. Please try again.</s:String>
@@ -308,4 +308,6 @@
     <s:String x:Key="Do you want to replace the current parameter list with preset value?">Do you want to replace the current parameter list with preset value?</s:String>
     <s:String x:Key="One option per line">One option per line</s:String>
     <s:String x:Key="Use vertical lines to separate descriptions">Use vertical lines to separate descriptions(value|description)</s:String>
+    <s:String x:Key="Automatically focus on the content when selecting a tab">Automatically focus on the content when selecting a tab</s:String>
+    <s:String x:Key="Copy the port along with the address when copying">Copy the port along with the address when copying</s:String>
 </ResourceDictionary>

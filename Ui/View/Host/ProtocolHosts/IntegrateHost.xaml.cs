@@ -12,6 +12,9 @@ using System.Windows.Forms;
 using _1RM.Model;
 using _1RM.Model.Protocol;
 using _1RM.Model.Protocol.Base;
+using _1RM.Model.ProtocolRunner;
+using _1RM.Model.ProtocolRunner.Default;
+using _1RM.Utils.KiTTY;
 using Shawn.Utils;
 using Stylet;
 using Path = System.IO.Path;
@@ -177,23 +180,26 @@ namespace _1RM.View.Host.ProtocolHosts
         private readonly System.Windows.Forms.Panel _panel;
         private readonly HashSet<IntPtr> _exeHandles = new();
         public readonly string ExeFullName;
-        public readonly string ExeArguments;
+        public string ExeArguments { get; private set; }
         private readonly Dictionary<string, string> _environmentVariables;
+        private readonly Runner _runner;
+        private readonly string _sessionName = "";
 
-        public static IntegrateHost Create(ProtocolBase protocol, string exeFullName, string exeArguments, Dictionary<string, string>? environmentVariables = null)
+        public static IntegrateHost Create(ProtocolBase protocol, Runner runner, string exeFullName, string exeArguments, Dictionary<string, string>? environmentVariables = null)
         {
             IntegrateHost? view = null;
             Execute.OnUIThreadSync(() =>
             {
-                view = new IntegrateHost(protocol, exeFullName, exeArguments, environmentVariables);
+                view = new IntegrateHost(protocol, runner, exeFullName, exeArguments, environmentVariables);
             });
             return view!;
         }
 
-        private IntegrateHost(ProtocolBase protocol, string exeFullName, string exeArguments, Dictionary<string, string>? environmentVariables = null) : base(protocol, false)
+        private IntegrateHost(ProtocolBase protocol, Runner runner, string exeFullName, string exeArguments, Dictionary<string, string>? environmentVariables = null) : base(protocol, false)
         {
             ExeFullName = exeFullName;
             ExeArguments = exeArguments;
+            _runner = runner;
             _environmentVariables = environmentVariables ?? new Dictionary<string, string>();
             InitializeComponent();
 
@@ -206,6 +212,13 @@ namespace _1RM.View.Host.ProtocolHosts
             _panel.SizeChanged += PanelOnSizeChanged;
 
             FormsHost.Child = _panel;
+
+
+            if (runner is KittyRunner kittyRunner)
+            {
+                _sessionName = $"{Assert.APP_NAME}_{protocol.Protocol}_{protocol.Id}_{DateTimeOffset.Now.ToUnixTimeSeconds()}";
+                RunAfterConnected += () => PuttyConnectableExtension.DelKittySessionConfig(_sessionName, kittyRunner.PuttyExePath);
+            }
         }
 
         #region Resize
@@ -364,6 +377,15 @@ namespace _1RM.View.Host.ProtocolHosts
             RunBeforeConnect?.Invoke();
             var exeFullName = ExeFullName;
 
+            if (ProtocolServer is IKittyConnectable kittyConnectable && _runner is KittyRunner kittyRunner)
+            {
+                ExeArguments = kittyConnectable.GetExeArguments(_sessionName);
+                if(ProtocolServer is SSH ssh)
+                    ssh.ConfigKitty(_sessionName, kittyRunner, ssh.PrivateKey);
+                else
+                    kittyConnectable.ConfigKitty(_sessionName, kittyRunner, "");
+            }
+
             var startInfo = new ProcessStartInfo
             {
                 FileName = exeFullName,
@@ -396,7 +418,7 @@ namespace _1RM.View.Host.ProtocolHosts
 
             Task.Factory.StartNew(() =>
             {
-                Thread.Sleep(1 * 1000);
+                Thread.Sleep(5 * 1000);
                 RunAfterConnected?.Invoke();
             });
 

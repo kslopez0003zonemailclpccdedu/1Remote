@@ -71,6 +71,7 @@ namespace _1RM.Service
                 catch (Exception e)
                 {
                     MsAppCenterHelper.Error(e);
+                    MessageBoxHelper.ErrorAlert(e.Message + "\r\n while Run mstsc.exe");
                 }
             }
         }
@@ -153,19 +154,16 @@ namespace _1RM.Service
                 lock (_dictLock)
                 {
                     tab = this.GetOrCreateTabWindow(assignTabToken);
-                    var host = r.GetHost(p, tab);
-
-                    string displayName = p.DisplayName;
-                    tab ??= this.GetOrCreateTabWindow(assignTabToken);
                     if (tab == null) return;
                     if (tab.IsClosing) return;
                     tab.Show();
 
+                    var host = r.GetHost(p, tab);
                     // get display area size for host
                     Debug.Assert(!_connectionId2Hosts.ContainsKey(host.ConnectionId));
                     host.OnClosed += OnRequestCloseConnection;
                     host.OnFullScreen2Window += this.MoveSessionToTabWindow;
-                    tab.GetViewModel().AddItem(new TabItemViewModel(host, displayName));
+                    tab.GetViewModel().AddItem(new TabItemViewModel(host, p.DisplayName));
                     _connectionId2Hosts.TryAdd(host.ConnectionId, host);
                     host.Conn();
                     tab.WindowState = tab.WindowState == WindowState.Minimized ? WindowState.Normal : tab.WindowState;
@@ -224,6 +222,8 @@ namespace _1RM.Service
                     }
 
                     p.SetCredential(c);
+                    if (string.IsNullOrEmpty(assignCredentialName) == false)
+                        p.DisplayName += $" ({c.Name})";
                 }
             }
 
@@ -289,7 +289,7 @@ namespace _1RM.Service
             var runner = ProtocolHelper.GetRunner(IoC.Get<ProtocolConfigurationService>(), protocolClone, protocolClone.Protocol, assignRunnerName)!;
             if (runner.IsRunWithoutHosting())
             {
-                runner.RunWithoutHosting(protocol);
+                runner.RunWithoutHosting(protocolClone);
             }
             else
             {

@@ -101,6 +101,8 @@ namespace _1RM.Utils
                         break;
                 }
             }
+
+            // SSH_PRIVATE_KEY_PATH 改名为 1RM_PRIVATE_KEY_PATH 2023年10月12日，TODO 一年后删除此代码
             exeArguments = OtherNameAttributeExtensions.Replace(protocol, exeArguments.Replace("%SSH_PRIVATE_KEY_PATH%", "%1RM_PRIVATE_KEY_PATH%"));
 
             // make environment variables
@@ -125,7 +127,7 @@ namespace _1RM.Utils
                 var (isOk, exePath, exeArguments, environmentVariables) = er.GetStartInfo(protocol);
                 if (isOk)
                 {
-                    var integrateHost = IntegrateHost.Create(protocol, exePath, exeArguments, environmentVariables);
+                    var integrateHost = IntegrateHost.Create(protocol, runner, exePath, exeArguments, environmentVariables);
                     return integrateHost;
                 }
             }
@@ -138,22 +140,10 @@ namespace _1RM.Utils
                         var size = tab?.GetTabContentSize(ColorAndBrushHelper.ColorIsTransparent(protocol.ColorHex) == true);
                         return AxMsRdpClient09Host.Create(rdp, (int)(size?.Width ?? 0), (int)(size?.Height ?? 0));
                     }
-                case SSH ssh:
-                    {
-                        var kittyRunner = runner is KittyRunner kitty ? kitty : new KittyRunner(ssh.ProtocolDisplayName);
-                        var sessionName = $"{Assert.APP_NAME}_{ssh.Protocol}_{ssh.Id}_{DateTimeOffset.Now.ToUnixTimeSeconds()}";
-                        ssh.ConfigKitty(sessionName, kittyRunner, ssh.PrivateKey);
-                        var ih = IntegrateHost.Create(ssh, kittyRunner.PuttyExePath, ssh.GetExeArguments(sessionName));
-                        ih.RunAfterConnected = () => PuttyConnectableExtension.DelKittySessionConfig(sessionName, kittyRunner.PuttyExePath);
-                        return ih;
-                    }
                 case IKittyConnectable kittyConnectable:
                     {
                         var kittyRunner = runner is KittyRunner kitty ? kitty : new KittyRunner(protocol.ProtocolDisplayName);
-                        var sessionName = $"{Assert.APP_NAME}_{protocol.Protocol}_{protocol.Id}_{DateTimeOffset.Now.ToUnixTimeSeconds()}";
-                        kittyConnectable.ConfigKitty(sessionName, kittyRunner, "");
-                        var ih = IntegrateHost.Create(protocol, kittyRunner.PuttyExePath, kittyConnectable.GetExeArguments(sessionName));
-                        ih.RunAfterConnected = () => PuttyConnectableExtension.DelKittySessionConfig(sessionName, kittyRunner.PuttyExePath);
+                        var ih = IntegrateHost.Create(protocol, kittyRunner, kittyRunner.PuttyExePath, "");
                         return ih;
                     }
                 case VNC vnc:
@@ -170,7 +160,7 @@ namespace _1RM.Utils
                     }
                 case LocalApp app:
                     {
-                        return IntegrateHost.Create(app, app.GetExePath(), app.GetArguments(false));
+                        return IntegrateHost.Create(app, runner, app.GetExePath(), app.GetArguments(false));
                     }
                 default:
                     throw new NotImplementedException($"Host of {protocol.GetType()} is not implemented");
